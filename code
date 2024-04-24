@@ -1,0 +1,44 @@
+# Initialize variables
+total_latency = 0
+total_bytes_transferred = 0
+total_cycles = 0
+throttling_cycles = 0
+power_limit_exceeded = False
+
+# Define a function to parse the interface monitor output
+def parse_monitor_output(monitor_output):
+    # Extract timestamp, transaction type, and data from monitor output
+    timestamp, txn_type, data = monitor_output.split()
+    return int(timestamp), txn_type, data
+
+# Main loop to iterate through interface monitor outputs
+for monitor_output in interface_monitor_outputs:
+    # Parse monitor output
+    timestamp, txn_type, data = parse_monitor_output(monitor_output)
+    
+    # Update total cycles
+    total_cycles = timestamp
+    
+    # Check for power limit threshold
+    if get_powerlimit_threshold() == 1:
+        power_limit_exceeded = True
+        throttling_cycles += 1
+    else:
+        power_limit_exceeded = False
+    
+    # Calculate latency for read transactions
+    if txn_type.startswith('Rd'):
+        latency = timestamp - read_start_time[txn_type]  # Assuming read_start_time is a dictionary storing start times of read transactions
+        total_latency += latency
+    
+    # Calculate bytes transferred for write transactions
+    elif txn_type.startswith('Wr'):
+        bytes_transferred = len(data) / 2  # Assuming each character represents a byte and data is represented in hexadecimal
+        total_bytes_transferred += bytes_transferred
+    
+# Calculate average latency and bandwidth
+average_latency = total_latency / number_of_read_transactions
+average_bandwidth = total_bytes_transferred / total_cycles
+
+# Calculate throttling percentage
+throttling_percentage = (throttling_cycles / total_cycles) * 100
